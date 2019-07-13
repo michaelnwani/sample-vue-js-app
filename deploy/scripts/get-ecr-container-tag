@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -u
+
+display_usage() {
+  cat <<EOM
+    ##### get-ecr-container-tag #####
+    builds a container tag based on the current build
+
+    Required arguments:
+        -e | --environment      Environment to tag the images with
+                                (edge, staging, production)
+        -r | --repo-name        DockerHub repo name
+    Optional arguments:
+        --aws-account           AWS Account Id. Defaults to '490892407140'
+        --aws-region            AWS Region. Defaults to 'us-east-1'
+        -s | --sha1             Git sha1 to use for diffs. Defaults to \${CHD_CIRCLE_SHA1}e
+        -h | --help             Show this message
+
+    Requirements:
+        None
+EOM
+}
+
+print_error() {
+  message="*********** [ $1 ] ***********"
+  echo ""
+  echo "$message"
+  echo ""
+}
+
+validate_var() {
+  if [[ -z $2 ]]; then
+    print_error "$1 is required"
+    display_usage
+    exit 1
+  fi
+}
+
+aws_account_id=${CHD_AWS_ACCOUNT_NUMBER}
+aws_region='us-east-1'
+environment=''
+repo_name=${REPO_NAME}
+sha1=${CHD_CIRCLE_SHA1:-}
+
+container_tag="${repo_name}:${sha1}"
+
+ecr_tag="${aws_account_id}.dkr.ecr.${aws_region}.amazonaws.com/${container_tag}"
+
+echo ${ecr_tag}

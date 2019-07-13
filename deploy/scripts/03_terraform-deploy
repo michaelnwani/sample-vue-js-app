@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -u
+
+display_usage() {
+  cat <<EOM
+    ##### 03_terraform-deploy #####
+    Runs the Terraform process to bring up the environment where the deployment is going
+
+    Required arguments:
+      --aws-account               AWS account to use when deploying new container
+      -e | --environment          Environment to tag the images with
+                                  (edge, staging, production)
+      --ecr-tag                   Tag for latest container image
+
+    Optional arguments:
+      --aws-region                AWS Region. Defaults to 'us-east-1'
+      -h | --help                 Show this message
+
+
+    Requirements:
+      terraform: To apply infrastructure changes, if any
+EOM
+}
+
+require() {
+  command -v "$1" > /dev/null 2>&1 || {
+    echo "Some of the required software is not installed:"
+    echo "    please install $1" >&2;
+    exit 1;
+  }
+}
+
+print_error() {
+  local -r message="*********** [ $1 ] ***********"
+  echo ""
+  echo "$message"
+  echo ""
+}
+
+validate_var() {
+  if [[ -z $2 ]]; then
+    print_error "$1 is required"
+    display_usage
+    exit 1
+  fi
+}
+
+aws_region='us-east-1'
+aws_account=${CHD_AWS_ACCOUNT_NUMBER}
+ecr_tag=${ECR_TAG}
+app_name=${CHD_APP_NAME}
+
+pushd deploy/environments/prod
+terraform init -backend-config=backend.tfvars
+terraform get --update=true
+
+terraform plan \
+  -var "app_name=${app_name}" \
+  -var "app_image=${ecr_tag}" \
+  -var "aws_account_id=${aws_account}" \
+  -var "app_release=${CHD_CIRCLE_SHA1:-}"
+
+terraform apply -auto-approve \
+  -var "app_name=${app_name}" \
+  -var "app_image=${ecr_tag}" \
+  -var "aws_account_id=${aws_account}" \
+  -var "app_release=${CHD_CIRCLE_SHA1:-}"

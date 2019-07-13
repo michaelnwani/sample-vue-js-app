@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+export CHD_APP_NAME="anonymous-web"
+export CHD_AWS_ACCOUNT_NUMBER=<redacted>
+export CHD_CIRCLE_SHA1=$(git rev-parse HEAD)
+export REPO_NAME="anonymous-web"
+export CHD_FARGATE_AWS_ACCESS_KEY_ID="<redacted>"
+export CHD_FARGATE_AWS_SECRET_ACCESS_KEY="<redacted>"
+
+echo "STEP 1"
+./deploy/scripts/01_terraform-ecr
+
+echo "STEP 2"
+./deploy/scripts/02_build-container
+
+export ECR_TAG=$(./deploy/scripts/get-ecr-container-tag)
+
+echo "ECR_TAG=${ECR_TAG}"
+
+echo "STEP 3"
+./deploy/scripts/03_terraform-deploy

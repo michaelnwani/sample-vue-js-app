@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -u
+
+display_usage() {
+  cat <<EOM
+    ##### 01_terraform-ecr #####
+    Runs the Terraform process to bring up ECR
+
+    Required arguments:
+        -e | --environment      Current environment (edge, staging, production)
+
+    Optional arguments:
+        --aws-region            AWS Region. Defaults to 'us-east-1'
+        -h | --help             Show this message
+
+    Requirements:
+        None
+EOM
+}
+
+print_error() {
+  message="*********** [ $1 ] ***********"
+  echo ""
+  echo "$message"
+  echo ""
+}
+
+validate_var() {
+  if [[ -z $2 ]]; then
+    print_error "$1 is required"
+    display_usage
+    exit 1
+  fi
+}
+
+aws_region='us-east-1'
+
+eval $(aws configure set default.region ${aws_region})
+eval $(aws configure set default.aws_access_key_id ${CHD_FARGATE_AWS_ACCESS_KEY_ID})
+eval $(aws configure set default.aws_secret_access_key ${CHD_FARGATE_AWS_SECRET_ACCESS_KEY})
+
+pushd "deploy/global/ecr"
+terraform init \
+    -backend-config "key=aws/us-east-1/apps/anonymous-web/ecr/terraform.tfstate" \
+    -backend-config "bucket=anonymous-infra-config" \
+    -backend-config "region=${aws_region}"
+terraform get --update=true
+terraform plan
+terraform apply -auto-approve
+popd
+
+eval $(aws ecr get-login --no-include-email --region "${aws_region}")

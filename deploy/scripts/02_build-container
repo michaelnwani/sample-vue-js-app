@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -u
+
+readonly ORG='anon'
+
+display_usage() {
+  cat <<EOM
+    ##### 02_build-container #####
+    Builds the docker container for the correct environment,
+    and pushes it to an AWS repository
+
+    Required arguments:
+        --aws-profile           AWS Profile to use when deploying new container
+        --aws-account           AWS account to use when deploying new container
+        --docker-file-path      Path to Dockerfile
+                                Defaults to .
+        -e | --environment      Environment to tag the images with
+                                (edge, staging, production)
+        -r | --repo-name        DockerHub repo name
+    Optional arguments:
+        --aws-region            AWS Region. Defaults to 'us-east-1'
+        -s | --sha1             Git sha1 to use for diffs. Defaults to \${CHD_CIRCLE_SHA1}
+        -h | --help             Show this message
+
+    Requirements:
+      None
+EOM
+}
+
+print_error() {
+  message="*********** [ $1 ] ***********"
+  echo ""
+  echo "$message"
+  echo ""
+}
+
+validate_var() {
+  if [[ -z $2 ]]; then
+    print_error "$1 is required"
+    display_usage
+    exit 1
+  fi
+}
+
+aws_account=${CHD_AWS_ACCOUNT_NUMBER}
+
+echo "aws_account=${aws_account}"
+
+aws_region='us-east-1'
+repo_name='anonymous-web'
+sha1=${CHD_CIRCLE_SHA1:-}
+
+echo "sha1=${sha1}"
+
+docker_file_path='.'
+
+eval $(aws ecr get-login --no-include-email --region ${aws_region})
+
+container_tag="${repo_name}:${sha1}"
+
+echo "container_tag=${container_tag}"
+
+docker build -t ${container_tag} ${docker_file_path}
+
+ecr_tag="${aws_account}.dkr.ecr.${aws_region}.amazonaws.com/${container_tag}"
+
+echo "ecr_tag=${ecr_tag}"
+
+docker tag ${container_tag} ${ecr_tag}
+docker push ${ecr_tag}
+
+echo ${ecr_tag}

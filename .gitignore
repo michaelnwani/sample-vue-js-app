@@ -1,0 +1,51 @@
+/dist/
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# dependencies
+*node_modules*
+
+# production
+/dist
+
+# ssl certs
+/ssl/*
+!/ssl/README.md
+*.pem
+
+# use yarn.lock, ignore npm
+package-lock.json
+
+# misc
+.DS_Store
+*.DS_STORE
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+*~
+*~*
+
+# storybook
+public/storybook
+
+cookie-file.txt
+sessions/
+
+.cache
+
+lib
+
+# Deploy pipeline
+.terraform/
+*.terraform
+terraform-vars
